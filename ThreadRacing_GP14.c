@@ -36,7 +36,17 @@ int main(void){
 
 }
 
-void nuevoCorredor(){
+void nuevoCorredor(char *indentificador){
+	
+	struct corredor nuevoCorredor;
+	//nuevoCorredor.hilo=currentThread();
+	nuevoCorredor.atendido=FALSE;
+	nuevoCorredor.sancionado=FALSE;
+	nuevoCorredor.irreparable=FALSE;
+	nuevoCorredor.id=indentificador;
+	
+	corredores[numeroCorredores]=nuevoCorredor;
+	numeroCorredores++;
 
 }
 
