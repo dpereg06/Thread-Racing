@@ -4,18 +4,23 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <time.h>
 
 #define NC 5
+#define FALSE 0
+#define TRUE 1
 
 struct corredor
 {
 	pthread_t hilo;
-	int id,atendido,sancionado;
+	int atendido,sancionado,irreparable;
+	char * id;
 	
 };
 
 struct box
 {
+	char * id;
 	int ocupado;
 };
 
@@ -36,6 +41,49 @@ void nuevoCorredor(){
 }
 
 void *hiloCorredor(void *ptr){
+	char *log;
+	int i = 0;
+	int problemasMecanicos,tVuelta;
+
+	srand(time (NULL));
+
+	*log = "Entra a pista.";
+
+	//pthread_mutex_lock(log);
+
+	//writeLogMessage(*(struct*)ptr.id,log);
+
+	//pthread_mutex_unlock(log);
+
+	for(i;i<5;i++){
+
+		tVuelta=rand()%4+2;
+		problemasMecanicos=rand()%10+1;
+
+		sleep(tVuelta);
+
+		if(problemasMecanicos<6){
+			//entrar cola boxes
+
+			/*if(*(struct*)ptr.irreparable == TRUE){
+				*log = "No se puede reparar.";
+
+				//pthread_mutex_lock(log);
+
+				//writeLogMessage(*(struct*)ptr.id,log);
+
+				//pthread_mutex_unlock(log);
+
+				pthread_exit (NULL);
+
+			}*/
+
+		}
+
+
+	}
+
+
 
 }
 
@@ -52,10 +100,10 @@ void writeLogMessage ( char * id , char * msg ) {
 	time_t now = time (0) ;
 	struct tm * tlocal = localtime (& now ) ;
 	char stnow [19];
-	strftime (stnow,19,"%d/%m/ %y %H: %M: %S" ,tlocal) ;
+	strftime (stnow,19,"%d/ %m/ %y %H: %M: %S" ,tlocal) ;
 
 // Escribimos en el log
-	logFile = fopen ("logFileName","a");
+	logFile = fopen ("log.txt","a");
 	fprintf (logFile,"[ %s ] %s : %s \n " ,stnow,id,msg) ;
 	fclose (logFile);
 }
