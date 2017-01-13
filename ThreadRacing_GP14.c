@@ -52,7 +52,7 @@ void manejadorSignal(){
 }
 
 int main(void){
-	if(signal(SIGUSR1, manejadorSignal) == SIG_ERR){
+	/*if(signal(SIGUSR1, manejadorSignal) == SIG_ERR){
 	   printf("Error en la llamada a signal.\n");
 	}
 
@@ -60,27 +60,27 @@ int main(void){
 	pthread_mutexBoxes_init(&mutexBoxes, NULL);
 	pthread_mutexLog_init(&mutexLog, NULL);
 	numeroCorredores = 0;
-	logFile = fopen("FicheroLog.log", "a+");
-	struct box param_box1 = {"1", 0};
-	struct box param_box2 = {"2", 0};
+	logFile = fopen("FicheroLog.log", "a");
+	struct box param_box1 = {"box 1", FALSE};
+	struct box param_box2 = {"box 2", FALSE};
 	pthread_t box1, box2;
 	
 
 	//pthread_create(&box1, NULL, hiloBox, (void*)&param_box1);
 	//pthread_create(&box2, NULL, hiloBox, (void*)&param_box2);
-
+*/
 	
 }
 
 
-void nuevoCorredor(char *indentificador){
+void nuevoCorredor(char *identificador){
 	
 	struct corredor nuevoCorredor;
 	//nuevoCorredor.hilo=currentThread();
 	nuevoCorredor.atendido=FALSE;
 	nuevoCorredor.sancionado=FALSE;
 	nuevoCorredor.irreparable=FALSE;
-	nuevoCorredor.id=indentificador;
+	nuevoCorredor.id=identificador;
 	
 	corredores[numeroCorredores]=nuevoCorredor;
 	numeroCorredores++;
@@ -91,16 +91,21 @@ void *hiloCorredor(void *ptr){
 	char *log;
 	int i = 0;
 	int problemasMecanicos,tVuelta;
+	//struct *corredor = (struct *)ptr;
+	
+	{
+		
+	};
 
 	srand(time (NULL));
 
 	*log = "Entra a pista.";
 
-	//pthread_mutex_lock(log);
+	//pthread_mutex_lock(&mutexLog);
 
-	//writeLogMessage(*(struct*)ptr.id,log);
+	//writeLogMessage(*corredor.id,log);
 
-	//pthread_mutex_unlock(log);
+	//pthread_mutex_unlock(&mutexLog);
 
 	for(i;i<5;i++){
 
@@ -112,14 +117,14 @@ void *hiloCorredor(void *ptr){
 		if(problemasMecanicos<6){
 			//entrar cola boxes
 
-			/*if(*(struct*)ptr.irreparable == TRUE){
+			/*if(*corredor.irreparable == TRUE){
 				*log = "No se puede reparar.";
 
-				//pthread_mutex_lock(log);
+				//pthread_mutex_lock(&mutexLog);
 
-				//writeLogMessage(*(struct*)ptr.id,log);
+				//writeLogMessage(*corredor.id,log);
 
-				//pthread_mutex_unlock(log);
+				//pthread_mutex_unlock(&mutexLog);
 
 				pthread_exit (NULL);
 
@@ -127,10 +132,22 @@ void *hiloCorredor(void *ptr){
 
 		}
 
+	/*	if(*corredor.sancionado == TRUE){
+			sleep(3);
+		}
+*/
 
 	}
 
+	*log = "Finaliza la carrera.";
 
+	//pthread_mutex_lock(&mutexLog);
+
+	//writeLogMessage(*corredor.id,log);
+
+	//pthread_mutex_unlock(&mutexLog);
+
+	pthread_exit (NULL);
 
 }
 
