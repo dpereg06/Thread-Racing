@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <time.h>
+#include <signal.h>
 
 #define NC 5
 #define FALSE 0
@@ -20,6 +21,7 @@ struct corredor
 
 struct box
 {
+	
 	char * id;
 	int ocupado;
 };
@@ -27,14 +29,49 @@ struct box
 pthread_mutex_t mutexCircuito;
 pthread_mutex_t mutexBoxes;
 pthread_mutex_t mutexLog;
-int numeroCorredores = 0;
+int numeroCorredores;
 struct corredor corredores[NC];
 struct corredor corredoresBoxes[NC];
 FILE * logFile;
 
-int main(void){
 
+void manejadorSignal(){
+	if(signal(SIGUSR1, manejadorSignal) == SIG_ERR){
+	   printf("Error en la llamada a signal.\n");
+	}
+
+	//int i = 0;
+	//char *id;
+	//itoa(i, id, 10);
+	//pthread_create(&corredores[i].hilo, NULL, nuevoCorredor(id), NULL);
+	//i++;
+	//if(i == 5){
+	//	i == 0;
+	//}
+	
 }
+
+int main(void){
+	if(signal(SIGUSR1, manejadorSignal) == SIG_ERR){
+	   printf("Error en la llamada a signal.\n");
+	}
+
+	pthread_mutexCircuito_init(&mutexCircuito, NULL);
+	pthread_mutexBoxes_init(&mutexBoxes, NULL);
+	pthread_mutexLog_init(&mutexLog, NULL);
+	numeroCorredores = 0;
+	logFile = fopen("FicheroLog.log", "a+");
+	struct box param_box1 = {"1", 0};
+	struct box param_box2 = {"2", 0};
+	pthread_t box1, box2;
+	
+
+	//pthread_create(&box1, NULL, hiloBox, (void*)&param_box1);
+	//pthread_create(&box2, NULL, hiloBox, (void*)&param_box2);
+
+	
+}
+
 
 void nuevoCorredor(char *indentificador){
 	
