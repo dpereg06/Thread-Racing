@@ -11,13 +11,13 @@
 #define FALSE 0
 #define TRUE 1
 
-struct corredor
+typedef struct corredor
 {
 	pthread_t hilo;
 	int atendido,sancionado,irreparable;
 	char * id;
 	
-};
+}Corredor;
 
 struct box
 {
@@ -90,22 +90,21 @@ void nuevoCorredor(char *identificador){
 void *hiloCorredor(void *ptr){
 	char *log;
 	int i = 0;
+	int indice = *(int*)ptr;
 	int problemasMecanicos,tVuelta;
-	//struct *corredor = (struct *)ptr;
-	
-	{
-		
-	};
+	Corredor *esteCorredor = &corredores[indice];
+	//struct corredor *esteCorredor;
+	//esteCorredor=&corredores[indice];
 
 	srand(time (NULL));
 
 	*log = "Entra a pista.";
 
-	//pthread_mutex_lock(&mutexLog);
+	pthread_mutex_lock(&mutexLog);
 
-	//writeLogMessage(*corredor.id,log);
+	writeLogMessage(esteCorredor->id,log);
 
-	//pthread_mutex_unlock(&mutexLog);
+	pthread_mutex_unlock(&mutexLog);
 
 	for(i;i<5;i++){
 
@@ -117,35 +116,35 @@ void *hiloCorredor(void *ptr){
 		if(problemasMecanicos<6){
 			//entrar cola boxes
 
-			/*if(*corredor.irreparable == TRUE){
+			if(esteCorredor->irreparable == TRUE){
 				*log = "No se puede reparar.";
 
-				//pthread_mutex_lock(&mutexLog);
+				pthread_mutex_lock(&mutexLog);
 
-				//writeLogMessage(*corredor.id,log);
+				writeLogMessage(esteCorredor->id,log);
 
-				//pthread_mutex_unlock(&mutexLog);
+				pthread_mutex_unlock(&mutexLog);
 
 				pthread_exit (NULL);
 
-			}*/
+			}
 
 		}
 
-	/*	if(*corredor.sancionado == TRUE){
+		if(esteCorredor->sancionado == TRUE){
 			sleep(3);
 		}
-*/
+
 
 	}
 
 	*log = "Finaliza la carrera.";
 
-	//pthread_mutex_lock(&mutexLog);
+	pthread_mutex_lock(&mutexLog);
 
-	//writeLogMessage(*corredor.id,log);
+	writeLogMessage(esteCorredor->id,log);
 
-	//pthread_mutex_unlock(&mutexLog);
+	pthread_mutex_unlock(&mutexLog);
 
 	pthread_exit (NULL);
 
