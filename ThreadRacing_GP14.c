@@ -75,7 +75,7 @@ int main(void){
 
 void nuevoCorredor(int identificador){
 	
-	/*if(signal(SIGUSR1, nuevoCorredor) == SIG_ERR){
+	/*if(signal(SIGUSR1, nuevoCorredor(identificador) == SIG_ERR){
 	   printf("Error en la llamada a signal.\n");
 	}*/
 	
