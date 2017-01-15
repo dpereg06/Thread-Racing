@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <signal.h>
+#include <string.h>
 
 #define NC 5
 #define FALSE 0
@@ -14,8 +15,7 @@
 typedef struct corredor
 {
 	pthread_t hilo;
-	int atendido,sancionado,irreparable;
-	char * id;
+	int atendido,sancionado,irreparable, id;
 	
 }Corredor;
 
@@ -73,18 +73,33 @@ int main(void){
 }
 
 
-void nuevoCorredor(char *identificador){
+void nuevoCorredor(int identificador){
 	
-	struct corredor nuevoCorredor;
-	//nuevoCorredor.hilo=currentThread();
-	nuevoCorredor.atendido=FALSE;
-	nuevoCorredor.sancionado=FALSE;
-	nuevoCorredor.irreparable=FALSE;
-	nuevoCorredor.id=identificador;
+	/*if(signal(SIGUSR1, nuevoCorredor) == SIG_ERR){
+	   printf("Error en la llamada a signal.\n");
+	}*/
 	
-	corredores[numeroCorredores]=nuevoCorredor;
-	numeroCorredores++;
+	if(numeroCorredores<5){
 
+		//Crear corredor y asignarle sus atributos		
+		Corredor nuevoCorredor;
+		pthread_t hilo;		
+		numeroCorredores++;
+		identificador=numeroCorredores;		
+		nuevoCorredor.hilo=hilo;
+		nuevoCorredor.atendido=FALSE;
+		nuevoCorredor.sancionado=FALSE;
+		nuevoCorredor.irreparable=FALSE;
+		nuevoCorredor.id=identificador;
+
+		//Se añade el corredor
+		corredores[numeroCorredores]=nuevoCorredor;
+		
+	}else{
+
+		//No hacer nada
+	
+	}
 }
 
 void *hiloCorredor(void *ptr){
