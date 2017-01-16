@@ -21,9 +21,8 @@ typedef struct corredor
 
 struct box
 {
-	
 	char * id;
-	int ocupado;
+	int cerrado;
 };
 
 pthread_mutex_t mutexCircuito;
@@ -165,8 +164,45 @@ void *hiloCorredor(void *ptr){
 
 }
 
-void *hiloBox(void *ptr){
-	
+void *hiloBox(void *ptr) {
+	struct box box = *(struct box*) ptr;
+	char * msg;
+	struct corredor corredor;
+	srand(time(NULL));
+	int corredoresAtendidos = 0;
+
+	// INCIO BUCLE GENERAL
+	// ESPERA / BUSCA
+	corredor = corredoresBoxes[0];
+	// ACTUALIZA CORREDORESBOXES
+
+	pthread_mutex_lock(&mutexLog);
+	// sprintf(msg, "Atiende a %s", corredor.id);
+	sprintf(msg, "Atiende a ...");
+	writeLogMessage(box.id, msg);
+	pthread_mutex_unlock(&mutexLog);
+
+	sleep(rand() % 3 + 1);
+	if (rand() % 10 >= 3)
+		corredor.irreparable = TRUE;
+
+	if (++corredoresAtendidos >= 3 /*&& PUEDE CERRAR*/) {
+		corredoresAtendidos = 0;
+
+		pthread_mutex_lock(&mutexLog);
+		writeLogMessage(box.id, "Cierra");
+		pthread_mutex_unlock(&mutexLog);
+
+		box.cerrado = TRUE;
+		sleep(20);
+
+		pthread_mutex_lock(&mutexLog);
+		writeLogMessage(box.id, "Reabre");
+		pthread_mutex_unlock(&mutexLog);
+
+		box.cerrado = FALSE;
+	}
+	// FIN BUCLE GENERAL
 }
 
 void *hiloJuez(void *ptr){
