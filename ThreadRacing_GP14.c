@@ -27,6 +27,8 @@ pthread_mutex_t mutexGo;
 pthread_mutex_t mutexStop;
 pthread_mutex_t mutexLista;
 pthread_mutex_t mutexLog;
+pthread_mutex_t mutexFin;
+pthread_cond_t fin;
 int numeroCorredores, numeroCorredoresTotal;
 struct corredor corredores[NC];
 FILE * logFile;
@@ -45,18 +47,22 @@ void writeLogMessage(char * id, char * msg) {
 }
 
 void borrarCorredor(int posicion) {
+	pthread_mutex_lock(&mutexLista);
 	corredores[posicion].box = FALSE;
 	corredores[posicion].sancionado = FALSE;
 	corredores[posicion].irreparable = FALSE;
-	sprintf(corredores[posicion].id, "Corredor_0");
+	corredores[posicion].id = "Corredor_0";
 	corredores[posicion].numID = 0;
 	numeroCorredores--;
+	pthread_mutex_unlock(&mutexLista);
 }
 
 void *hiloCorredor(void *ptr) {
 	int i = 0;
 	int problemasMecanicos, tVuelta;
 	int posCorredor = *(int*) ptr;
+
+	printf("%s",corredores[posCorredor].id);
 
 	pthread_mutex_lock(&mutexLog);
 
@@ -72,7 +78,17 @@ void *hiloCorredor(void *ptr) {
 		sleep(tVuelta);
 
 		if (problemasMecanicos < 6) {
+
+			pthread_mutex_lock(&mutexLog);
+
+			writeLogMessage(corredores[posCorredor].id, "Esperando a ser reparado.");
+
+			pthread_mutex_unlock(&mutexLog);
+
+			pthread_mutex_lock(&mutexLista);
 			corredores[posCorredor].box = TRUE;
+			pthread_mutex_unlock(&mutexLista);
+
 			while (corredores[posCorredor].box == TRUE) {
 				sleep(1);
 			}
@@ -92,6 +108,12 @@ void *hiloCorredor(void *ptr) {
 
 			}
 
+			pthread_mutex_lock(&mutexLog);
+
+			writeLogMessage(corredores[posCorredor].id, "Sale de boxes.");
+
+			pthread_mutex_unlock(&mutexLog);
+
 		}
 
 		if (corredores[posCorredor].sancionado == TRUE) {
@@ -102,11 +124,23 @@ void *hiloCorredor(void *ptr) {
 
 			pthread_mutex_unlock(&mutexStop);
 
+			pthread_mutex_lock(&mutexLog);
+
+			writeLogMessage(corredores[posCorredor].id, "Empieza a cumplir la sanción.");
+
+			pthread_mutex_unlock(&mutexLog);
+
 			pthread_mutex_lock(&mutexGo);
 
 			pthread_cond_wait(&(corredores[posCorredor].go), &mutexGo);
 
 			pthread_mutex_unlock(&mutexGo);
+
+			pthread_mutex_lock(&mutexLog);
+
+			writeLogMessage(corredores[posCorredor].id, "Ha cumplido la sanción.");
+
+			pthread_mutex_unlock(&mutexLog);
 		}
 
 	}
@@ -130,6 +164,9 @@ void *hiloCorredor(void *ptr) {
 
 void nuevoCorredor(int sig) {
 
+
+	printf("1");
+
 	if (signal(SIGUSR1, nuevoCorredor) == SIG_ERR) {
 		perror("Error in signal call");
 		exit(-1);
@@ -143,13 +180,16 @@ void nuevoCorredor(int sig) {
 
 	int i;
 
+	char * id = malloc(sizeof(char) * 15);
+
 	pthread_mutex_lock(&mutexLista);
 
 	for (i = 0; i < NC; i++) {
 		if (corredores[i].numID == 0) {
 			numeroCorredores++;
 			corredores[i].numID = ++numeroCorredoresTotal;
-			sprintf(corredores[i].id, "Corredor_%d", numeroCorredoresTotal);
+			sprintf(id, "Corredor_%d", numeroCorredoresTotal);
+			corredores[i].id=id;
 			break;
 		}
 	}
@@ -158,15 +198,18 @@ void nuevoCorredor(int sig) {
 
 	pthread_create(&hilo, NULL, hiloCorredor, (void*) &i);
 
+	printf("2");
+
 }
 
 void finCarrera(int sig) {
-	//.........................................................................................
+	pthread_cond_signal(&fin);
+	printf("Fin");
 }
 
 void *hiloBox(void *ptr) {
-	char * id;
-	char * msg;
+	char * id = malloc(sizeof(char) * 15);
+	char * msg = malloc(sizeof(char) * 50);
 	int corredoresAtendidos = 0, posBox = *(int*) ptr, trabajo = FALSE, i,
 			posCorredor, idCorredor = 0;
 	sprintf(id, "Box_%d", posBox + 1);
@@ -175,7 +218,7 @@ void *hiloBox(void *ptr) {
 		while (TRUE) {
 			pthread_mutex_lock(&mutexLista);
 			for (i = 0; i < NC; i++)
-				if (corredores[i].box == TRUE
+				if (corredores[i].box == TRUE && corredores[i].numID != 0
 						&& (idCorredor == 0 || corredores[i].numID < idCorredor)) {
 					trabajo = TRUE;
 					idCorredor = corredores[i].numID;
@@ -187,9 +230,7 @@ void *hiloBox(void *ptr) {
 			sleep(1);
 		}
 
-		pthread_mutex_lock(&mutexLista);
 		sprintf(msg, "Atiende a %s", corredores[posCorredor].id);
-		pthread_mutex_unlock(&mutexLista);
 		pthread_mutex_lock(&mutexLog);
 		writeLogMessage(id, msg);
 		pthread_mutex_unlock(&mutexLog);
@@ -227,6 +268,7 @@ void *hiloJuez(void *ptr) {
 	while (TRUE) {
 		sleep(10);
 		int aleatorio;
+		char * msg = malloc(sizeof(char) * 50);
 
 		pthread_mutex_lock(&mutexLista);
 		do {
@@ -234,6 +276,11 @@ void *hiloJuez(void *ptr) {
 		} while (corredores[aleatorio].numID == 0);
 		corredores[aleatorio].sancionado = TRUE;
 		pthread_mutex_unlock(&mutexLista);
+
+		pthread_mutex_lock(&mutexLog);
+		sprintf(msg,"Sanciona a %s",corredores[aleatorio].id);
+		writeLogMessage("Juez",msg);
+		pthread_mutex_unlock(&mutexLog);
 
 		pthread_mutex_lock(&mutexStop);
 		pthread_cond_wait(&(corredores[aleatorio].stop), &mutexStop);
@@ -254,6 +301,8 @@ void *hiloJuez(void *ptr) {
 int main(void) {
 
 	int i;
+	struct corredor miCorredor;
+
 
 	srand(time(NULL));
 
@@ -267,29 +316,37 @@ int main(void) {
 		exit(-1);
 	}
 
-	for (i = 0; i < NC; i++) {
+	/*if (signal(SIGKILL, finCarrera) == SIG_ERR) {
+		perror("Error in signal call");
+		exit(-1);
+	}*/
 
-		struct corredor miCorredor;
-
-		if (pthread_cond_init(&(miCorredor.go), NULL) != 0)
-			exit(-1);
-
-		if (pthread_cond_init(&(miCorredor.stop), NULL) != 0)
-			exit(-1);
 
 		miCorredor.box = FALSE;
 		miCorredor.sancionado = FALSE;
 		miCorredor.irreparable = FALSE;
-		sprintf(miCorredor.id, "Corredor_0");
+		miCorredor.id = "Corredor_0";
 		miCorredor.numID = 0;
 
+	for (i = 0; i < NC; i++) {
+
 		corredores[i] = miCorredor;
+
+		if (pthread_cond_init(&(corredores[i].go), NULL) != 0)
+			exit(-1);
+
+		if (pthread_cond_init(&(corredores[i].stop), NULL) != 0)
+			exit(-1);
 	}
 
 	pthread_mutex_init(&mutexLista, NULL);
 	pthread_mutex_init(&mutexGo, NULL);
 	pthread_mutex_init(&mutexStop, NULL);
 	pthread_mutex_init(&mutexLog, NULL);
+	pthread_mutex_init(&mutexFin, NULL);
+
+	if (pthread_cond_init(&(fin), NULL) != 0)
+			exit(-1);
 
 	numeroCorredores = 0;
 	numeroCorredoresTotal = 0;
@@ -303,5 +360,9 @@ int main(void) {
 	pthread_create(&box1, NULL, hiloBox, (void*) &a);
 	pthread_create(&box2, NULL, hiloBox, (void*) &b);
 	pthread_create(&juez, NULL, hiloJuez, NULL);
+
+	pthread_cond_wait(&fin,&mutexFin);
+
+	printf("gfcb");
 
 }
