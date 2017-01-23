@@ -41,7 +41,7 @@ pthread_cond_t fin;
 int numeroCorredores, numeroCorredoresTotal;
 struct corredor corredores[NC];
 char * idGanador;
-double segGanador = 0.0;
+double segGanador;
 FILE * logFile;
 
 int main(void) {
@@ -65,7 +65,7 @@ int main(void) {
 
 	srand(time(NULL));
 
-	logFile = fopen("registrosTiempos.log", "w");
+	logFile = fopen("registroTiempos.log", "w");
 
 	miCorredor.box = FALSE;
 	miCorredor.sancionado = FALSE;
@@ -95,6 +95,7 @@ int main(void) {
 
 	numeroCorredores = 0;
 	numeroCorredoresTotal = 0;
+	segGanador = 0.0;
 
 	boxesAbiertos[0] = TRUE;
 	boxesAbiertos[1] = TRUE;
@@ -121,7 +122,7 @@ void writeLogMessage(char * id, char * msg) {
 	strftime(stnow, 19, "%d/%m/%y %H:%M:%S", tlocal);
 
 // Escribimos en el log
-	logFile = fopen("registrosTiempos.log", "a");
+	logFile = fopen("registroTiempos.log", "a");
 	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
 	fclose(logFile);
 	pthread_mutex_unlock(&mutexLog);
@@ -172,10 +173,17 @@ void *hiloCorredor(void *ptr) {
 				sleep(1);
 			}
 
+			writeLogMessage(corredores[posCorredor].id,
+					"Comienza su reparación.");
+
+			while (corredores[posCorredor].box != FALSE) {
+				sleep(1);
+			}
+
 			if (corredores[posCorredor].irreparable == TRUE) {
 
 				writeLogMessage(corredores[posCorredor].id,
-						"No se puede reparar.");
+						"No se puede reparar y abandona.");
 
 				borrarCorredor(posCorredor);
 
@@ -267,14 +275,16 @@ void nuevoCorredor(int sig) {
 }
 
 void finCarrera(int sig) {
-	if (segGanador == 0.0)
-		writeLogMessage("Dirección de carrera",
-				"Ningún corredor ha terminado la carrera.");
-	else {
-		char * msg = malloc(sizeof(char) * 150);
+	char * msg = malloc(sizeof(char) * 150);
+	if (segGanador == 0.0) {
 		sprintf(msg,
-				"Fin de la carrera / Ganador: %s (%.2f segundos) / Nº total de corredores: %d.",
-				idGanador, segGanador, numeroCorredoresTotal);
+				"Fin de la carrera / Nº total de corredores: %d / Ningún corredor ha terminado la carrera.",
+				numeroCorredoresTotal);
+		writeLogMessage("Dirección de carrera", msg);
+	} else {
+		sprintf(msg,
+				"Fin de la carrera / Nº total de corredores: %d / Ganador: %s (%.2f segundos).",
+				numeroCorredoresTotal, idGanador, segGanador);
 		writeLogMessage("Dirección de carrera", msg);
 	}
 	pthread_cond_signal(&fin);
@@ -299,11 +309,8 @@ void *hiloBox(void *ptr) {
 				}
 			}
 			idCorredor = 0;
-			if (trabajo == TRUE) {
-				corredores[posCorredor].box = FALSE;
-				if (rand() % 10 < 3)
-					corredores[posCorredor].irreparable = TRUE;
-			}
+			if (trabajo == TRUE)
+				corredores[posCorredor].box = -1;
 			pthread_mutex_unlock(&mutexLista);
 			if (trabajo == TRUE)
 				break;
@@ -311,23 +318,34 @@ void *hiloBox(void *ptr) {
 		}
 		trabajo = FALSE;
 
-		sprintf(msg, "Atiende a %s.", corredores[posCorredor].id);
+		sprintf(msg, "Se prepara para atender a %s.",
+				corredores[posCorredor].id);
 		writeLogMessage(id, msg);
 
 		sleep(rand() % 3 + 1);
 
-		if ((++corredoresAtendidos >= 3)
-				&& (boxesAbiertos[(posBox + 1) % 2] == TRUE)) {
-			boxesAbiertos[posBox] = FALSE;
-			corredoresAtendidos = 0;
+		writeLogMessage(id, "Termina la reparación.");
 
-			writeLogMessage(id, "Cierra.");
+		pthread_mutex_lock(&mutexLista);
+		corredores[posCorredor].box = FALSE;
+		if (rand() % 10 >= 7)
+			corredores[posCorredor].irreparable = TRUE;
+		pthread_mutex_unlock(&mutexLista);
 
-			sleep(20);
+		if (++corredoresAtendidos >= 3) {
+			if (boxesAbiertos[(posBox + 1) % 2] == TRUE) {
+				boxesAbiertos[posBox] = FALSE;
+				corredoresAtendidos = 0;
 
-			writeLogMessage(id, "Reabre.");
+				writeLogMessage(id, "Cierra temporalmente.");
 
-			boxesAbiertos[posBox] = TRUE;
+				sleep(20);
+
+				writeLogMessage(id, "Reabre.");
+
+				boxesAbiertos[posBox] = TRUE;
+			} else
+				writeLogMessage(id, "No puede cerrar.");
 		}
 	}
 }
@@ -354,6 +372,8 @@ void *hiloJuez(void *ptr) {
 		pthread_mutex_unlock(&mutexStop);
 
 		sleep(3);
+
+		writeLogMessage("Juez", "Sanción cumplida.");
 
 		pthread_mutex_lock(&mutexLista);
 		corredores[aleatorio].sancionado = FALSE;
