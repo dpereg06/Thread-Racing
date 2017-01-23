@@ -254,6 +254,8 @@ void *hiloCorredor(void *ptr) {
 void nuevoCorredor(int sig) {
 
 	pthread_mutex_lock(&mutexLista);
+
+//Controlamos que el corredor se cree solo si el numero de corredores es menor que el maximo permitido
 	if (numeroCorredores < NC) {
 
 		pthread_t hilo;
@@ -262,6 +264,7 @@ void nuevoCorredor(int sig) {
 
 		char * id = malloc(sizeof(char) * 15);
 
+//Asignamos valores a los atributos de un corredor del array que estuviera a 0
 		for (i = 0; i < NC; i++) {
 			if (corredores[i].numID == 0) {
 				numeroCorredores++;
@@ -271,7 +274,7 @@ void nuevoCorredor(int sig) {
 				break;
 			}
 		}
-
+//Iniciamos el hilo que controlara las acciones del corredor
 		pthread_create(&hilo, NULL, hiloCorredor, (void*) &i);
 	}
 	pthread_mutex_unlock(&mutexLista);
