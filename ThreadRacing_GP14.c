@@ -24,23 +24,31 @@ void *hiloJuez(void *ptr);
 
 struct corredor {
 	char * id;
+	// valores del campo box: 0 = en pista / 1 = en espera / -1 = en reparación
 	int box, sancionado, irreparable, numID;
+	// variables condición para comunicarse con el juez
 	pthread_cond_t go;
 	pthread_cond_t stop;
 };
 
+// array para comprobar el estado de los boxes (1 = abierto / 0 = cerrado)
 int boxesAbiertos[2];
 
+// declaración de mutex
 pthread_mutex_t mutexGo;
 pthread_mutex_t mutexStop;
 pthread_mutex_t mutexLista;
 pthread_mutex_t mutexLog;
 pthread_mutex_t mutexFin;
 pthread_cond_t fin;
+// contadores de corredores
 int numeroCorredores, numeroCorredoresTotal, NC;
+// lista de corredores
 struct corredor * corredores;
+// id y tiempo del ganador
 char * idGanador;
 double segGanador;
+// fichero de log
 FILE * logFile;
 
 int main(int argc, char*argv[]) {
@@ -141,6 +149,8 @@ void writeLogMessage(char * id, char * msg) {
 	pthread_mutex_unlock(&mutexLog);
 }
 
+// función que restaura a los valores por defecto los campos del corredor
+// que ocupa en la lista la posición indicada como parámetro (numID a 0 simboliza corredor vacío)
 void borrarCorredor(int posicion) {
 	pthread_mutex_lock(&mutexLista);
 	corredores[posicion].box = FALSE;
@@ -303,6 +313,7 @@ void nuevoCorredor(int sig) {
 
 }
 
+// manejadora de la señal SIGINT que detiene la carrera y vuelca al log el mensaje final con el ganador
 void finCarrera(int sig) {
 	char * msg = malloc(sizeof(char) * 150);
 	if (segGanador == 0.0) {
