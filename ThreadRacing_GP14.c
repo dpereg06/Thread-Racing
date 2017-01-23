@@ -298,14 +298,24 @@ void finCarrera(int sig) {
 	pthread_cond_signal(&fin);
 }
 
+// Acciones a realizar por los hilos de los boxes
+// Recibe el índice del box en el array boxesAbiertos
 void *hiloBox(void *ptr) {
 	char * id = malloc(sizeof(char) * 15);
 	char * msg = malloc(sizeof(char) * 50);
-	int corredoresAtendidos = 0, posBox = *(int*) ptr, trabajo = FALSE, i,
-			posCorredor, idCorredor = 0;
+	int corredoresAtendidos = 0;     // contador para cerrar cada 3 reparaciones
+	int posBox = *(int*) ptr;     // posición del box en el array boxesAbiertos (0/1)
+	int trabajo = FALSE;     // variable para comprobar si hay corredores esperando atención
+	int i;
+	int posCorredor;     // posición del corredor al que atiende en la lista
+	int idCorredor = 0;     // almacena el id mínimo entre los corredores que esperan atención
 	sprintf(id, "Box_%d", posBox + 1);
 
 	while (TRUE) {
+		/* Bucle para buscar un corredor que esté esperando a ser atendido
+		 * Recorre la lista de corredores en busca del de menor id entre ellos (mayor tiempo de espera)
+		 * Si no hay ninguno duerme 1 segundo y vuelve a buscar
+		 */
 		while (TRUE) {
 			pthread_mutex_lock(&mutexLista);
 			for (i = 0; i < NC; i++) {
@@ -317,6 +327,7 @@ void *hiloBox(void *ptr) {
 				}
 			}
 			idCorredor = 0;
+			// Si ha encontrado un corredor para atender lo pone en reparación y sale del bucle
 			if (trabajo == TRUE)
 				corredores[posCorredor].box = -1;
 			pthread_mutex_unlock(&mutexLista);
@@ -330,16 +341,19 @@ void *hiloBox(void *ptr) {
 				corredores[posCorredor].id);
 		writeLogMessage(id, msg);
 
+		// Duerme el tiempo de reparación
 		sleep(rand() % 3 + 1);
 
 		writeLogMessage(id, "Termina la reparación.");
 
 		pthread_mutex_lock(&mutexLista);
 		corredores[posCorredor].box = FALSE;
+		// Comprueba si el problema es irreparable
 		if (rand() % 10 >= 7)
 			corredores[posCorredor].irreparable = TRUE;
 		pthread_mutex_unlock(&mutexLista);
 
+		// Comprueba si tiene que cerrar y si puede hacerlo (si el otro box no está cerrado)
 		if (++corredoresAtendidos >= 3) {
 			if (boxesAbiertos[(posBox + 1) % 2] == TRUE) {
 				boxesAbiertos[posBox] = FALSE;
