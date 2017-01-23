@@ -45,6 +45,7 @@ FILE * logFile;
 
 int main(int argc, char*argv[]) {
 
+	// Comprobamos si se ha introducido por parámatro un numero distinto de corredores
 	if (argc > 1)
 		NC = atoi(argv[1]);
 	else
@@ -55,6 +56,8 @@ int main(int argc, char*argv[]) {
 	struct sigaction sNuevo, sFin;
 	sNuevo.sa_handler = nuevoCorredor;
 	sFin.sa_handler = finCarrera;
+
+	// Esperamos a la señal SIGUSR1	
 	if (sigaction(SIGUSR1, &sNuevo, NULL) == -1) {
 		perror("Error in signal call");
 		exit(-1);
@@ -73,12 +76,15 @@ int main(int argc, char*argv[]) {
 
 	logFile = fopen("registroTiempos.log", "w");
 
+	// Atributos que tomaran por defecto los corredores al comienzo de la carrera
+
 	miCorredor.box = FALSE;
 	miCorredor.sancionado = FALSE;
 	miCorredor.irreparable = FALSE;
 	miCorredor.id = "Corredor_0";
 	miCorredor.numID = 0;
 
+	// Inicializamos los corredores, variables de condición y mutex
 	for (i = 0; i < NC; i++) {
 
 		corredores[i] = miCorredor;
@@ -103,6 +109,7 @@ int main(int argc, char*argv[]) {
 	numeroCorredoresTotal = 0;
 	segGanador = 0.0;
 
+	// Al comienzo, los dos boxes estan abiertos
 	boxesAbiertos[0] = TRUE;
 	boxesAbiertos[1] = TRUE;
 	int a = 0, b = 1;
@@ -113,6 +120,7 @@ int main(int argc, char*argv[]) {
 	pthread_create(&box2, NULL, hiloBox, (void*) &b);
 	pthread_create(&juez, NULL, hiloJuez, NULL);
 
+	// Espera por el hilo ganador si lo hay, sino se indicara
 	pthread_mutex_lock(&mutexFin);
 	pthread_cond_wait(&fin, &mutexFin);
 	pthread_mutex_unlock(&mutexFin);
