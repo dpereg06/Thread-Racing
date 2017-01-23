@@ -11,7 +11,6 @@
 #include <signal.h>
 #include <string.h>
 
-#define NC 5
 #define FALSE 0
 #define TRUE 1
 
@@ -38,13 +37,20 @@ pthread_mutex_t mutexLista;
 pthread_mutex_t mutexLog;
 pthread_mutex_t mutexFin;
 pthread_cond_t fin;
-int numeroCorredores, numeroCorredoresTotal;
-struct corredor corredores[NC];
+int numeroCorredores, numeroCorredoresTotal, NC;
+struct corredor * corredores;
 char * idGanador;
 double segGanador;
 FILE * logFile;
 
-int main(void) {
+int main(int argc, char*argv[]) {
+
+	if (argc > 1)
+		NC = atoi(argv[1]);
+	else
+		NC = 5;
+
+	corredores = (struct corredor *) malloc(NC * sizeof(struct corredor));
 
 	struct sigaction sNuevo, sFin;
 	sNuevo.sa_handler = nuevoCorredor;
@@ -110,7 +116,6 @@ int main(void) {
 	pthread_mutex_lock(&mutexFin);
 	pthread_cond_wait(&fin, &mutexFin);
 	pthread_mutex_unlock(&mutexFin);
-
 }
 
 void writeLogMessage(char * id, char * msg) {
@@ -187,6 +192,10 @@ void *hiloCorredor(void *ptr) {
 
 				borrarCorredor(posCorredor);
 
+				pthread_mutex_lock(&mutexStop);
+				pthread_cond_signal(&(corredores[posCorredor].stop));
+				pthread_mutex_unlock(&mutexStop);
+
 				pthread_exit(NULL);
 
 			}
@@ -198,18 +207,14 @@ void *hiloCorredor(void *ptr) {
 		if (corredores[posCorredor].sancionado == TRUE) {
 
 			pthread_mutex_lock(&mutexStop);
-
 			pthread_cond_signal(&(corredores[posCorredor].stop));
-
 			pthread_mutex_unlock(&mutexStop);
 
 			writeLogMessage(corredores[posCorredor].id,
 					"Empieza a cumplir la sanción.");
 
 			pthread_mutex_lock(&mutexGo);
-
 			pthread_cond_wait(&(corredores[posCorredor].go), &mutexGo);
-
 			pthread_mutex_unlock(&mutexGo);
 
 			writeLogMessage(corredores[posCorredor].id,
@@ -244,7 +249,6 @@ void *hiloCorredor(void *ptr) {
 	borrarCorredor(posCorredor);
 
 	pthread_exit(NULL);
-
 }
 
 void nuevoCorredor(int sig) {
@@ -287,6 +291,7 @@ void finCarrera(int sig) {
 				numeroCorredoresTotal, idGanador, segGanador);
 		writeLogMessage("Dirección de carrera", msg);
 	}
+
 	pthread_cond_signal(&fin);
 }
 
@@ -358,7 +363,8 @@ void *hiloJuez(void *ptr) {
 
 		do {
 			aleatorio = rand() % NC;
-		} while (corredores[aleatorio].numID == 0);
+		} while (corredores[aleatorio].numID == 0
+				|| corredores[aleatorio].box != FALSE);
 
 		pthread_mutex_lock(&mutexLista);
 		corredores[aleatorio].sancionado = TRUE;
@@ -371,17 +377,17 @@ void *hiloJuez(void *ptr) {
 		pthread_cond_wait(&(corredores[aleatorio].stop), &mutexStop);
 		pthread_mutex_unlock(&mutexStop);
 
-		sleep(3);
-
-		writeLogMessage("Juez", "Sanción cumplida.");
-
-		pthread_mutex_lock(&mutexLista);
-		corredores[aleatorio].sancionado = FALSE;
-		pthread_mutex_unlock(&mutexLista);
+		if (corredores[aleatorio].sancionado == TRUE) {
+			sleep(3);
+			pthread_mutex_lock(&mutexLista);
+			corredores[aleatorio].sancionado = FALSE;
+			pthread_mutex_unlock(&mutexLista);
+			writeLogMessage("Juez", "Sanción cumplida.");
+		} else
+			writeLogMessage("Juez", "Abandono del corredor sancionado.");
 
 		pthread_mutex_lock(&mutexGo);
 		pthread_cond_signal(&(corredores[aleatorio].go));
 		pthread_mutex_unlock(&mutexGo);
 	}
 }
-
