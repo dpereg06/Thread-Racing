@@ -172,8 +172,8 @@ void *hiloCorredor(void *ptr) {
 		problemasMecanicos = rand() % 10 + 1;
 
 		sleep(tVuelta);
-		
-	//Entrada a boxes por problemas mecánicos.
+
+		//Entrada a boxes por problemas mecánicos.
 
 		if (problemasMecanicos < 6) {
 
@@ -195,7 +195,7 @@ void *hiloCorredor(void *ptr) {
 				sleep(1);
 			}
 
-	//Comprueba si puede continuar la carrera después de su paso por boxes.
+			//Comprueba si puede continuar la carrera después de su paso por boxes.
 
 			if (corredores[posCorredor].irreparable == TRUE) {
 
@@ -204,7 +204,7 @@ void *hiloCorredor(void *ptr) {
 
 				borrarCorredor(posCorredor);
 
-	//Se hace signal para hacer saber al juez que no puede cumplir la sanción porque abandona la carrera y así no quede bloqueado.
+				//Se hace signal para hacer saber al juez que no puede cumplir la sanción porque abandona la carrera y así no quede bloqueado.
 
 				pthread_mutex_lock(&mutexStop);
 				pthread_cond_signal(&(corredores[posCorredor].stop));
@@ -217,8 +217,8 @@ void *hiloCorredor(void *ptr) {
 			writeLogMessage(corredores[posCorredor].id, "Sale de boxes.");
 
 		}
-		
-	//Comprueba si esta sancionado y en caso afirmativo la cumple.
+
+		//Comprueba si esta sancionado y en caso afirmativo la cumple.
 
 		if (corredores[posCorredor].sancionado == TRUE) {
 
@@ -239,8 +239,8 @@ void *hiloCorredor(void *ptr) {
 		}
 
 		tf_vuelta = time(0);
-		
-	//Se calcula el tiempo que tarda en dar una vuelta
+
+		//Se calcula el tiempo que tarda en dar una vuelta
 
 		segVuelta = difftime(tf_vuelta, ti_vuelta);
 
@@ -252,7 +252,7 @@ void *hiloCorredor(void *ptr) {
 	}
 
 	tf_carrera = time(0);
-	
+
 	//Se calcula el tiempo que tarda en terminar la carrera
 
 	segCarrera = difftime(tf_carrera, ti_carrera);
@@ -260,7 +260,7 @@ void *hiloCorredor(void *ptr) {
 	sprintf(msg, "Finaliza la carrera en %.2f segundos.", segCarrera);
 
 	writeLogMessage(corredores[posCorredor].id, msg);
-	
+
 	//Si ha sido el más rapido se guarda su tiempo y su id.
 
 	if (segGanador == 0 || segCarrera < segGanador) {
@@ -326,11 +326,11 @@ void *hiloBox(void *ptr) {
 	char * id = malloc(sizeof(char) * 15);
 	char * msg = malloc(sizeof(char) * 50);
 	int corredoresAtendidos = 0;     // contador para cerrar cada 3 reparaciones
-	int posBox = *(int*) ptr;     // posición del box en el array boxesAbiertos (0/1)
-	int trabajo = FALSE;     // variable para comprobar si hay corredores esperando atención
+	int posBox = *(int*) ptr; // posición del box en el array boxesAbiertos (0/1)
+	int trabajo = FALSE; // variable para comprobar si hay corredores esperando atención
 	int i;
 	int posCorredor;     // posición del corredor al que atiende en la lista
-	int idCorredor = 0;     // almacena el id mínimo entre los corredores que esperan atención
+	int idCorredor = 0; // almacena el id mínimo entre los corredores que esperan atención
 	sprintf(id, "Box_%d", posBox + 1);
 
 	while (TRUE) {
@@ -400,7 +400,7 @@ void *hiloJuez(void *ptr) {
 		int aleatorio;
 		char * msg = malloc(sizeof(char) * 50);
 
-	//Sanciona a un corredor en pista que no se encuentre en boxes
+		//Sanciona a un corredor en pista que no se encuentre en boxes
 
 		do {
 			aleatorio = rand() % NC;
@@ -413,8 +413,8 @@ void *hiloJuez(void *ptr) {
 
 		sprintf(msg, "Sanciona a %s.", corredores[aleatorio].id);
 		writeLogMessage("Juez", msg);
-		
-	//Espera a que el corredor empiece la sanción para hacersela cumplir, excepto si ha abandonado por problemas mecánicos irreparables.
+
+		//Espera a que el corredor empiece la sanción para hacersela cumplir, excepto si ha abandonado por problemas mecánicos irreparables.
 
 		pthread_mutex_lock(&mutexStop);
 		pthread_cond_wait(&(corredores[aleatorio].stop), &mutexStop);
